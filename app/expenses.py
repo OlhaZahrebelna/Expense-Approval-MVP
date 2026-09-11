@@ -169,7 +169,8 @@ def get_expense(
                 category_name=expense.category.name,
                 description=expense.description,
             )
-        except Exception:
+        except Exception as exc:
+            print(f"AI analysis failed: {exc}")
             ai_analysis = None
 
     return {
