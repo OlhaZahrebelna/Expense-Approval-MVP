@@ -139,6 +139,48 @@ def get_expense(
     return expense
 
 @router.post(
+    "/{expense_id}/withdraw",
+    response_model=ExpenseResponse,
+)
+def withdraw_expense(
+    expense_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    expense = (
+        db.query(Expense)
+        .filter(Expense.id == expense_id)
+        .first()
+    )
+
+    if expense is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Expense not found",
+        )
+
+    # Only the employee who created the expense may withdraw it
+    if expense.employee_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can withdraw only your own expense",
+        )
+
+    # Only pending expenses can be withdrawn
+    if expense.status != ExpenseStatus.PENDING:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only pending expenses can be withdrawn",
+        )
+
+    expense.status = ExpenseStatus.WITHDRAWN
+
+    db.commit()
+    db.refresh(expense)
+
+    return expense
+
+@router.post(
     "/{expense_id}/approve",
     response_model=ExpenseResponse,
 )
@@ -232,44 +274,3 @@ def reject_expense(
 
     return expense
 
-@router.post(
-    "/{expense_id}/withdraw",
-    response_model=ExpenseResponse,
-)
-def withdraw_expense(
-    expense_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    expense = (
-        db.query(Expense)
-        .filter(Expense.id == expense_id)
-        .first()
-    )
-
-    if expense is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Expense not found",
-        )
-
-    # Only the employee who created the expense may withdraw it
-    if expense.employee_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can withdraw only your own expense",
-        )
-
-    # Only pending expenses can be withdrawn
-    if expense.status != ExpenseStatus.PENDING:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only pending expenses can be withdrawn",
-        )
-
-    expense.status = ExpenseStatus.WITHDRAWN
-
-    db.commit()
-    db.refresh(expense)
-
-    return expense
