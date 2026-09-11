@@ -65,6 +65,14 @@ def test_users(db):
         is_approver=False,
     )
 
+    other_employee = User(
+        name="Other Employee",
+        email="other_employee@test.com",
+        hashed_password=hash_password("OtherEmployee123"),
+        is_employee=True,
+        is_approver=False,
+    )
+    
     finance_approver = User(
         name="Finance Approver",
         email="finance@test.com",
@@ -81,8 +89,10 @@ def test_users(db):
         is_approver=True,
     )
 
+
     db.add_all([
         employee,
+        other_employee,
         finance_approver,
         travel_approver,
     ])
@@ -105,6 +115,7 @@ def test_users(db):
 
     return {
         "employee": employee,
+        "other_employee": other_employee,
         "finance_approver": finance_approver,
         "travel_approver": travel_approver,
         "office": office,
