@@ -314,3 +314,41 @@ def test_ai_failure_does_not_block_expense(
 
     assert data["id"] == expense_id
     assert data["ai_analysis"] is None    
+
+
+def test_employee_cannot_view_another_employee_expense(
+    client,
+    test_users,
+):
+    employee_headers = login(
+        client,
+        "employee@test.com",
+        "Employee123",
+    )
+
+    create_response = client.post(
+        "/expenses",
+        headers=employee_headers,
+        json={
+            "amount": 100,
+            "category_id": test_users["office"].id,
+            "description": "Office supplies",
+            "expense_date": "2026-09-10",
+            "payment_details": "Bank transfer",
+        },
+    )
+
+    expense_id = create_response.json()["id"]
+
+    other_employee_headers = login(
+        client,
+        "other_employee@test.com",
+        "OtherEmployee123",
+    )
+
+    response = client.get(
+        f"/expenses/{expense_id}",
+        headers=other_employee_headers,
+    )
+
+    assert response.status_code == 403
