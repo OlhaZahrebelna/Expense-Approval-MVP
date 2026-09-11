@@ -2,6 +2,7 @@ from fastapi import FastAPI
 
 from app.database import Base, engine
 from app.auth import router as auth_router
+from app.expenses import router as expenses_router
 from app import models
 
 
@@ -13,6 +14,8 @@ app = FastAPI(
 )
 
 app.include_router(auth_router)
+app.include_router(expenses_router)
+
 
 @app.get("/health")
 def health_check():
