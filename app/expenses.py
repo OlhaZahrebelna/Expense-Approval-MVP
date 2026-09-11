@@ -6,6 +6,7 @@ from app.auth import get_current_user
 from app.database import get_db
 from app.models import Category, Expense, ExpenseStatus, User
 from app.schemas import (
+    CategoryResponse,
     ExpenseCreate,
     ExpenseResponse,
     ExpenseDetailResponse,
@@ -19,6 +20,21 @@ router = APIRouter(
     tags=["Expenses"],
 )
 
+@router.get(
+    "/categories",
+    response_model=list[CategoryResponse],
+)
+def get_categories(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    categories = (
+        db.query(Category)
+        .order_by(Category.name.asc())
+        .all()
+    )
+
+    return categories
 
 @router.post(
     "",
