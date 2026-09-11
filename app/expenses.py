@@ -20,21 +20,7 @@ router = APIRouter(
     tags=["Expenses"],
 )
 
-@router.get(
-    "/categories",
-    response_model=list[CategoryResponse],
-)
-def get_categories(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    categories = (
-        db.query(Category)
-        .order_by(Category.name.asc())
-        .all()
-    )
 
-    return categories
 
 @router.post(
     "",
@@ -46,14 +32,14 @@ def create_expense(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    # 1. Check that the current user can create expenses
+    
     if not current_user.is_employee:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only employees can create expenses",
         )
 
-    # 2. Find the selected category
+    
     category = (
         db.query(Category)
         .filter(Category.id == expense_data.category_id)
@@ -66,7 +52,7 @@ def create_expense(
             detail="Category not found",
         )
 
-    # 3. Create expense
+   
     expense = Expense(
         employee_id=current_user.id,
         category_id=category.id,
@@ -83,6 +69,22 @@ def create_expense(
     db.refresh(expense)
 
     return expense
+
+@router.get(
+    "/categories",
+    response_model=list[CategoryResponse],
+)
+def get_categories(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    categories = (
+        db.query(Category)
+        .order_by(Category.name.asc())
+        .all()
+    )
+
+    return categories
 
 
 @router.get(
