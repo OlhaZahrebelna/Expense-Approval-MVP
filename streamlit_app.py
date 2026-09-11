@@ -429,7 +429,7 @@ def show_new_expense():
         return
 
     category_map = {
-    category["id"]: category["name"]
+    category["name"]: category["id"]
     for category in categories
     }
 
