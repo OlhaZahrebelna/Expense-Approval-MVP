@@ -81,6 +81,15 @@ class ExpenseResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class AIAnalysis(BaseModel):
+    summary: str
+    flagged: bool
+    reason: Optional[str] = None
+
+
+class ExpenseDetailResponse(ExpenseResponse):
+    ai_analysis: Optional[AIAnalysis] = None
+
 
 class RejectRequest(BaseModel):
     comment: str

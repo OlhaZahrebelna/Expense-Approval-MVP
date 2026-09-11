@@ -1,10 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.ai_service import analyze_expense
 from app.auth import get_current_user
 from app.database import get_db
 from app.models import Category, Expense, ExpenseStatus, User
-from app.schemas import ExpenseCreate, ExpenseResponse, RejectRequest
+from app.schemas import (
+    ExpenseCreate,
+    ExpenseResponse,
+    ExpenseDetailResponse,
+    RejectRequest,
+)
+
 
 
 router = APIRouter(
@@ -107,7 +114,7 @@ def get_approval_queue(
 
 @router.get(
     "/{expense_id}",
-    response_model=ExpenseResponse,
+    response_model=ExpenseDetailResponse,
 )
 def get_expense(
     expense_id: int,
@@ -126,7 +133,6 @@ def get_expense(
             detail="Expense not found",
         )
 
-    # Employee who created it OR assigned approver may see it
     if (
         expense.employee_id != current_user.id
         and expense.approver_id != current_user.id
@@ -136,7 +142,34 @@ def get_expense(
             detail="You do not have access to this expense",
         )
 
-    return expense
+    ai_analysis = None
+
+    if expense.approver_id == current_user.id:
+        try:
+            ai_analysis = analyze_expense(
+                amount=expense.amount,
+                category_name=expense.category.name,
+                description=expense.description,
+            )
+        except Exception:
+            ai_analysis = None
+
+    return {
+        "id": expense.id,
+        "employee_id": expense.employee_id,
+        "category_id": expense.category_id,
+        "approver_id": expense.approver_id,
+        "amount": expense.amount,
+        "description": expense.description,
+        "expense_date": expense.expense_date,
+        "payment_details": expense.payment_details,
+        "status": expense.status,
+        "rejection_comment": expense.rejection_comment,
+        "created_at": expense.created_at,
+        "updated_at": expense.updated_at,
+        "ai_analysis": ai_analysis,
+    }
+
 
 @router.post(
     "/{expense_id}/withdraw",
