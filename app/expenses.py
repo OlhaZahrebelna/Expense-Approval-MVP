@@ -48,7 +48,7 @@ def create_expense(
         employee_id=current_user.id,
         category_id=category.id,
         approver_id=category.approver_id,
-        amount=float(expense_data.amount),
+        amount=expense_data.amount,
         description=expense_data.description,
         expense_date=expense_data.expense_date,
         payment_details=expense_data.payment_details,
