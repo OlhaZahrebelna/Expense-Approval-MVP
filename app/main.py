@@ -3,9 +3,9 @@ from fastapi import FastAPI
 from app.database import Base, engine
 from app.auth import router as auth_router
 from app.expenses import router as expenses_router
+from app.seed import seed
 from app import models
 
-from app.seed import seed
 
 Base.metadata.create_all(bind=engine)
 
