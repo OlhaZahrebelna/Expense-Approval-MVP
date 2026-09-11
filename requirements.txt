@@ -10,4 +10,5 @@ python-jose
 httpx
 pytest
 openai
-streamlit 
+streamlit
+requests
