@@ -10,3 +10,4 @@ python-jose
 httpx
 pytest
 openai
+streamlit 
