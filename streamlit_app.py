@@ -429,8 +429,8 @@ def show_new_expense():
         return
 
     category_map = {
-        category["name"]: category["id"]
-        for category in categories
+    category["id"]: category["name"]
+    for category in categories
     }
 
     with st.form("new_expense_form"):
