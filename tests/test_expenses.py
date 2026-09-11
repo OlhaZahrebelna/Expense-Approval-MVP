@@ -563,3 +563,73 @@ def test_rejected_expense_cannot_be_rejected_again(
     assert second_reject_response.json()["detail"] == (
         "Only pending expenses can be rejected"
     )
+
+
+def test_ai_analysis_is_returned_for_approver(
+    client,
+    test_users,
+    monkeypatch,
+):
+    employee_headers = login(
+        client,
+        "employee@test.com",
+        "Employee123",
+    )
+
+    create_response = client.post(
+        "/expenses",
+        headers=employee_headers,
+        json={
+            "amount": 500,
+            "category_id": test_users["office"].id,
+            "description": "Flight ticket to London",
+            "expense_date": "2026-09-10",
+            "payment_details": "Bank transfer",
+        },
+    )
+
+    expense_id = create_response.json()["id"]
+
+    approver_headers = login(
+        client,
+        "finance@test.com",
+        "Finance123",
+    )
+
+    def fake_ai_analysis(*args, **kwargs):
+        return {
+            "summary": (
+                "Employee requests reimbursement for "
+                "a $500 flight ticket."
+            ),
+            "flagged": True,
+            "reason": (
+                "The description looks like Travel, "
+                "but the category is Office."
+            ),
+        }
+
+    monkeypatch.setattr(
+        "app.expenses.analyze_expense",
+        fake_ai_analysis,
+    )
+
+    response = client.get(
+        f"/expenses/{expense_id}",
+        headers=approver_headers,
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["ai_analysis"] is not None
+    assert data["ai_analysis"]["flagged"] is True
+    assert data["ai_analysis"]["summary"] == (
+        "Employee requests reimbursement for "
+        "a $500 flight ticket."
+    )
+    assert data["ai_analysis"]["reason"] == (
+        "The description looks like Travel, "
+        "but the category is Office."
+    )
