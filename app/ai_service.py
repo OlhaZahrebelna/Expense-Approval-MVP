@@ -25,7 +25,8 @@ def analyze_expense(
 
     client = OpenAI(
         api_key=OPENAI_API_KEY,
-        timeout=5.0,
+        timeout=60.0,
+        max_retries=0,
     )
 
     prompt = f"""
