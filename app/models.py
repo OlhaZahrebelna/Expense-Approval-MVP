@@ -7,12 +7,13 @@ from sqlalchemy import (
     Date,
     DateTime,
     Enum,
-    Float,
     ForeignKey,
     Integer,
+    Numeric,
     String,
     Text,
 )
+
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -77,7 +78,7 @@ class Expense(Base):
         nullable=False,
     )
 
-    amount = Column(Float, nullable=False)
+    amount = Column(Numeric(12, 2),nullable=False,)
 
     description = Column(Text, nullable=False)
 
