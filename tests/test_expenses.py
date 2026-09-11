@@ -392,3 +392,174 @@ def test_employee_cannot_view_another_employee_expense(
     assert response.json()["detail"] == (
         "You do not have access to this expense"
     )
+
+def test_employee_cannot_view_approval_queue(
+    client,
+    test_users,
+):
+    employee_headers = login(
+        client,
+        "employee@test.com",
+        "Employee123",
+    )
+
+    response = client.get(
+        "/expenses/queue",
+        headers=employee_headers,
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == (
+        "Only approvers can view approval queue"
+    )
+
+
+def test_approved_expense_cannot_be_withdrawn(
+    client,
+    test_users,
+):
+    employee_headers = login(
+        client,
+        "employee@test.com",
+        "Employee123",
+    )
+
+    create_response = client.post(
+        "/expenses",
+        headers=employee_headers,
+        json={
+            "amount": 200,
+            "category_id": test_users["office"].id,
+            "description": "Office desk",
+            "expense_date": "2026-09-10",
+            "payment_details": "Bank transfer",
+        },
+    )
+
+    expense_id = create_response.json()["id"]
+
+    approver_headers = login(
+        client,
+        "finance@test.com",
+        "Finance123",
+    )
+
+    approve_response = client.post(
+        f"/expenses/{expense_id}/approve",
+        headers=approver_headers,
+    )
+
+    assert approve_response.status_code == 200
+    assert approve_response.json()["status"] == "approved"
+
+    withdraw_response = client.post(
+        f"/expenses/{expense_id}/withdraw",
+        headers=employee_headers,
+    )
+
+    assert withdraw_response.status_code == 400
+    assert withdraw_response.json()["detail"] == (
+        "Only pending expenses can be withdrawn"
+    )
+
+def test_approved_expense_cannot_be_approved_again(
+    client,
+    test_users,
+):
+    employee_headers = login(
+        client,
+        "employee@test.com",
+        "Employee123",
+    )
+
+    create_response = client.post(
+        "/expenses",
+        headers=employee_headers,
+        json={
+            "amount": 220,
+            "category_id": test_users["office"].id,
+            "description": "Monitor for office",
+            "expense_date": "2026-09-10",
+            "payment_details": "Bank transfer",
+        },
+    )
+
+    expense_id = create_response.json()["id"]
+
+    approver_headers = login(
+        client,
+        "finance@test.com",
+        "Finance123",
+    )
+
+    first_approve_response = client.post(
+        f"/expenses/{expense_id}/approve",
+        headers=approver_headers,
+    )
+
+    assert first_approve_response.status_code == 200
+    assert first_approve_response.json()["status"] == "approved"
+
+    second_approve_response = client.post(
+        f"/expenses/{expense_id}/approve",
+        headers=approver_headers,
+    )
+
+    assert second_approve_response.status_code == 400
+    assert second_approve_response.json()["detail"] == (
+        "Only pending expenses can be approved"
+    )
+
+def test_rejected_expense_cannot_be_rejected_again(
+    client,
+    test_users,
+):
+    employee_headers = login(
+        client,
+        "employee@test.com",
+        "Employee123",
+    )
+
+    create_response = client.post(
+        "/expenses",
+        headers=employee_headers,
+        json={
+            "amount": 180,
+            "category_id": test_users["office"].id,
+            "description": "Office lamp",
+            "expense_date": "2026-09-10",
+            "payment_details": "Bank transfer",
+        },
+    )
+
+    expense_id = create_response.json()["id"]
+
+    approver_headers = login(
+        client,
+        "finance@test.com",
+        "Finance123",
+    )
+
+    first_reject_response = client.post(
+        f"/expenses/{expense_id}/reject",
+        headers=approver_headers,
+        json={
+            "comment": "Missing receipt"
+        },
+    )
+
+    assert first_reject_response.status_code == 200
+    assert first_reject_response.json()["status"] == "rejected"
+
+    second_reject_response = client.post(
+        f"/expenses/{expense_id}/reject",
+        headers=approver_headers,
+        json={
+            "comment": "Trying to reject again"
+        },
+    )
+
+    assert second_reject_response.status_code == 400
+    assert second_reject_response.json()["detail"] == (
+        "Only pending expenses can be rejected"
+    )
