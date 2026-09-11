@@ -53,7 +53,7 @@ def api_get(path):
         return requests.get(
             f"{API_URL}{path}",
             headers=auth_headers(),
-            timeout=10,
+            timeout=60,
         )
 
     except requests.RequestException:
@@ -66,7 +66,7 @@ def api_post(path, payload=None):
             f"{API_URL}{path}",
             headers=auth_headers(),
             json=payload,
-            timeout=10,
+            timeout=60,
         )
 
     except requests.RequestException:
@@ -123,7 +123,7 @@ def show_login():
                         "email": email,
                         "password": password,
                     },
-                    timeout=10,
+                    timeout=60,
                 )
 
             except requests.RequestException:
@@ -144,7 +144,7 @@ def show_login():
                     headers={
                         "Authorization": f"Bearer {token}"
                     },
-                    timeout=10,
+                    timeout=60,
                 )
 
             except requests.RequestException:
