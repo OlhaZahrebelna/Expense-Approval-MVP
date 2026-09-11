@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.auth import get_current_user
 from app.database import get_db
 from app.models import Category, Expense, ExpenseStatus, User
-from app.schemas import ExpenseCreate, ExpenseResponse
+from app.schemas import ExpenseCreate, ExpenseResponse, RejectRequest
 
 
 router = APIRouter(
@@ -79,6 +79,31 @@ def get_my_expenses(
 
     return expenses
 
+@router.get(
+    "/queue",
+    response_model=list[ExpenseResponse],
+)
+def get_approval_queue(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not current_user.is_approver:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only approvers can view approval queue",
+        )
+
+    expenses = (
+        db.query(Expense)
+        .filter(
+            Expense.approver_id == current_user.id,
+            Expense.status == ExpenseStatus.PENDING,
+        )
+        .order_by(Expense.created_at.desc())
+        .all()
+    )
+
+    return expenses
 
 @router.get(
     "/{expense_id}",
@@ -113,6 +138,99 @@ def get_expense(
 
     return expense
 
+@router.post(
+    "/{expense_id}/approve",
+    response_model=ExpenseResponse,
+)
+def approve_expense(
+    expense_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not current_user.is_approver:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only approvers can approve expenses",
+        )
+
+    expense = (
+        db.query(Expense)
+        .filter(Expense.id == expense_id)
+        .first()
+    )
+
+    if expense is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Expense not found",
+        )
+
+    if expense.approver_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not assigned to this expense",
+        )
+
+    if expense.status != ExpenseStatus.PENDING:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only pending expenses can be approved",
+        )
+
+    expense.status = ExpenseStatus.APPROVED
+
+    db.commit()
+    db.refresh(expense)
+
+    return expense
+
+@router.post(
+    "/{expense_id}/reject",
+    response_model=ExpenseResponse,
+)
+def reject_expense(
+    expense_id: int,
+    reject_data: RejectRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not current_user.is_approver:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only approvers can reject expenses",
+        )
+
+    expense = (
+        db.query(Expense)
+        .filter(Expense.id == expense_id)
+        .first()
+    )
+
+    if expense is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Expense not found",
+        )
+
+    if expense.approver_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not assigned to this expense",
+        )
+
+    if expense.status != ExpenseStatus.PENDING:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only pending expenses can be rejected",
+        )
+
+    expense.status = ExpenseStatus.REJECTED
+    expense.rejection_comment = reject_data.comment
+
+    db.commit()
+    db.refresh(expense)
+
+    return expense
 
 @router.post(
     "/{expense_id}/withdraw",
