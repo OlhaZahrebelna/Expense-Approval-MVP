@@ -9,10 +9,7 @@ load_dotenv()
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-client = OpenAI(
-    api_key=OPENAI_API_KEY,
-    timeout=5.0,
-)
+
 
 
 def analyze_expense(
@@ -20,6 +17,17 @@ def analyze_expense(
     category_name: str,
     description: str,
 ) -> dict:
+    
+    if not OPENAI_API_KEY:
+        raise RuntimeError(
+            "OPENAI_API_KEY is not configured"
+        )
+
+    client = OpenAI(
+        api_key=OPENAI_API_KEY,
+        timeout=5.0,
+    )
+
     prompt = f"""
 You are reviewing an employee expense claim.
 
